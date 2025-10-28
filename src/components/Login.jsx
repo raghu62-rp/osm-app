@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../config';
+import { login } from '../services/api.js';
 
 const Login = ({ onClose, onLoginSuccess }) => {
   const [isSignup, setIsSignup] = useState(false);
@@ -17,33 +18,43 @@ const Login = ({ onClose, onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const endpoint = isSignup ? 'register' : 'login';
-      const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(isSignup ? formData : {
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      if (!isSignup) {
+        // Use centralized login helper which includes network fallback in development
+        const data = await login(formData.email, formData.password);
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed');
+        localStorage.setItem('user', JSON.stringify({
+          id: data._id || data.id || 'local-user-1',
+          name: data.name || 'Local Dev',
+          email: data.email || formData.email,
+        }));
+
+        onLoginSuccess(data);
+        onClose();
+      } else {
+        // Fallback to original register flow for signups
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
+        }
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: data._id,
+          name: data.name,
+          email: data.email,
+        }));
+
+        onLoginSuccess(data);
+        onClose();
       }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: data._id,
-        name: data.name,
-        email: data.email,
-      }));
-
-      onLoginSuccess(data);
-      onClose();
     } catch (err) {
       setError(err.message);
     } finally {
