@@ -11,6 +11,7 @@ import CartModal from './components/CartModal.jsx';
 import Checkout from './components/Checkout.jsx';
 import Footer from './components/Footer.jsx';
 import { API_BASE_URL } from './config.js';
+import { mockProducts } from './mockData.jsx';
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -29,10 +30,14 @@ function App() {
       setIsLoading(true);
       try {
         const response = await axios.get(`${API_BASE_URL}/products`);
+        // Expecting an array of products from backend
         setProducts(response.data);
         setFilteredProducts(response.data);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        // If backend is not available (local dev), fallback to local mock data
+        console.error('Error fetching products from API, falling back to mock data:', error);
+        setProducts(mockProducts);
+        setFilteredProducts(mockProducts);
       } finally {
         setIsLoading(false);
       }
