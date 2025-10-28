@@ -56,10 +56,28 @@ const Login = ({ onClose, onLoginSuccess }) => {
         onClose();
       }
     } catch (err) {
-      setError(err.message);
+      // Show a friendlier message for network/backend issues and offer demo login
+      if (err.message && (err.message.toLowerCase().includes('failed to fetch') || err.message.toLowerCase().includes('unable to reach'))) {
+        setError('Unable to reach authentication server. You can try Demo login to continue without a backend.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    const demoUser = {
+      token: 'demo-token',
+      _id: 'demo-user-1',
+      name: 'Demo User',
+      email: 'demo@example.com',
+    };
+    localStorage.setItem('token', demoUser.token);
+    localStorage.setItem('user', JSON.stringify({ id: demoUser._id, name: demoUser.name, email: demoUser.email }));
+    onLoginSuccess(demoUser);
+    onClose();
   };
 
   const handleChange = (e) => {
@@ -124,6 +142,11 @@ const Login = ({ onClose, onLoginSuccess }) => {
           <button type="submit" className="auth-submit-btn" disabled={loading}>
             {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Login')}
           </button>
+          {!loading && (
+            <button type="button" className="auth-demo-btn" onClick={handleDemoLogin}>
+              Demo login
+            </button>
+          )}
         </form>
 
         <div className="auth-footer">
